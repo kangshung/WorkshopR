@@ -1,18 +1,19 @@
 pacman::p_load(readxl, tidyverse, stringi, microbenchmark, leaflet, sf, magrittr, plotly, RColorBrewer)
 
-# loading the .xls file
+
+# load the excel file (with optional processing)
 empl_rate <- read_excel("data/file1.xls", skip = 3, n_max = 41)
 # %>% mutate_at(vars(matches("\\d")), as.numeric)
 # %>% mutate_if(stri_detect_regex(names(.), "\\d"), as.numeric)
 
-# speed test of two approaches
+# speed test of two approaches (stringi is always faster)
 (bench <- microbenchmark(`dplyr_syntax` = read_excel("data/file1.xls", skip = 3, n_max = 41) %>% mutate_at(vars(matches("\\d")), as.numeric),
                          stringi = read_excel("data/file1.xls", skip = 3, n_max = 41) %>% mutate_if(stri_detect_regex(names(.), "\\d"), as.numeric)))
 autoplot(bench)
 
 # pacman::p_load(openxlsx, xlsx, XLConnect) # openxlsx is the best for more advanced operations
 
-# readxl shortcuts
+# readxl shortcuts (doing everything while loading data)
 empl_rate_men <- read_excel("data/file1.xls", skip = 3, n_max = 41, col_types = c("text", rep("numeric", 14)))
 empl_rate_women <- read_excel("data/file2.xls", skip = 3, n_max = 41, col_types = c("text", rep("numeric", 14)))
 
@@ -25,9 +26,10 @@ glimpse(empl_rate_men)
 (world <- sf::st_read("europe"))
 View(world)
 
-# testing map
+# test map
 leaflet(sf::st_read("europe")) %>% 
-  addPolygons(color = 'black', opacity = .4, fillOpacity = .8, fillColor = "yellow", weight = .4)
+  addPolygons(color = 'black', opacity = .4, fillOpacity = .8,
+              fillColor = "yellow", weight = .4)
 
 # join of our data with the shapefile
 names(empl_rate_men)
@@ -56,7 +58,7 @@ fix_france <- function(dataset) {
   dataset
 }
 
-# fixing datasets with the function above
+# fix datasets with the function above
 empl_rate_men <- fix_france(empl_rate_men)
 empl_rate_women <- fix_france(empl_rate_women)
 
@@ -73,19 +75,19 @@ left_join(empl_rate_men, world, c("geo\\time" = "NAME_ENGL")) %>%
   addControl("Title of the map", "topright") %>% 
   addLegend("bottomright", pal = pal_2018, values = ~`2018`, na.label = "undefined")
 
-# Change the name of the unemployment column
+# change names of columns
 eurostat %>%
   rename(country = `geo\\time`)
 
-# Keep the state and county columns, and the columns containing poverty
+# keep specific columns
 eurostat %>%
   select(`geo\\time`, contains("00"))
 
-# Calculate the fraction_women column without dropping the other columns
+# change the values of columns
 eurostat %>%
   mutate(`2005` = as.character(`2006`))
 
-# Keep only the state, county, and employment_rate columns
+# change the values of columns and keep only them
 eurostat %>%
   transmute(`geo\\time`, `2018`, mean = (`2006` + `2008`) / 2)
 
@@ -110,7 +112,7 @@ random_5_women
          `Men 2018` = `2018.x`,
          `Women 2018` = `2018.y`))
 
-# many layers
+# plot with many layers
 empl %>% plot_ly(x = ~Country) %>% 
   add_bars(y = ~`Men 2017`, name = "Men 2017", color = I("red")) %>% 
   add_bars(y = ~`Women 2017`, name = "Women 2017", color = I("orange")) %>% 
@@ -118,7 +120,7 @@ empl %>% plot_ly(x = ~Country) %>%
   add_bars(y = ~`Women 2018`, name = "Women 2018", color = I("lightgreen")) %>% 
   layout(title = "Employment rate in EU in years 2017-2018", yaxis = list(title = "Employment rate [%]"))
 
-# one layer
+# plot with one layer
 gather(empl, "Category", "Employment rate [%]", -Country) %>% 
   mutate(gender = stri_extract_first_regex(Category, "\\w+")) %>% 
   ggplot(aes(Country, `Employment rate [%]`, fill = Category)) + 
