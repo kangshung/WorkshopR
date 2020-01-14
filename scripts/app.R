@@ -1,4 +1,5 @@
-pacman::p_load(shiny, DT, data.table, h2o)
+# pacman::p_load(shiny, DT, data.table, h2o)
+library(shiny); library(data.table); library(h2o); library(DT)
 h2o.init()
 h2o.no_progress()
 
@@ -34,7 +35,10 @@ server <- function(input, output, session) {
     h2o_data <- reactive(as.h2o(data()))
     
     leaderboard <- eventReactive(input$automl, {
-        h2o.automl(input$independent, input$response, h2o_data(), max_runtime_secs = input$seconds)
+        withProgress(
+            message = "Running AutoML",
+            h2o.automl(input$independent, input$response, h2o_data(), max_runtime_secs = input$seconds)
+        )
     })
     
     output$leaderboard <- renderPrint({
