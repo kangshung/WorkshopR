@@ -27,7 +27,7 @@ glimpse(empl_rate_men)
 View(world)
 
 # test map
-leaflet(sf::st_read("europe")) %>% 
+leaflet(sf::st_read("europe")) %>%
   addPolygons(color = 'black', opacity = .4, fillOpacity = .8,
               fillColor = "yellow", weight = .4)
 
@@ -40,21 +40,21 @@ View(eurostat)
 pal_2017 <- leaflet::colorBin(RColorBrewer::brewer.pal(10, "RdYlGn"), eurostat$`2017`)
 
 # values from 2017 on a map (joined table as sf into leaflet())
-left_join(empl_rate_men, world, c("geo\\time" = "NAME_ENGL")) %>% 
-  sf::st_as_sf() %>% 
-  leaflet() %>% 
+left_join(empl_rate_men, world, c("geo\\time" = "NAME_ENGL")) %>%
+  sf::st_as_sf() %>%
+  leaflet() %>%
   addPolygons(label = ~stri_paste(`geo\\time`, " - ", `2017`, "%"),
               color = ~pal_2017(`2017`),
               fillOpacity = .6, opacity = 1, weight = .5)
 
 # function that fixes two "France" tuples by taking their mean
 fix_france <- function(dataset) {
-  men_france_fixed <- filter(dataset, stri_detect_fixed(`geo\\time`, "France")) %>% 
+  men_france_fixed <- filter(dataset, stri_detect_fixed(`geo\\time`, "France")) %>%
     summarise_at(2:15, mean, na.rm = T)
-  
+
   dataset[13, -1] <- men_france_fixed
   dataset %<>% filter(!stri_detect_regex(`geo\\time`, "France."))
-  
+
   dataset
 }
 
@@ -66,13 +66,13 @@ empl_rate_women <- fix_france(empl_rate_women)
 pal_2018 <- leaflet::colorBin(RColorBrewer::brewer.pal(10, "RdYlGn"), eurostat$`2018`)
 
 # map for 2018
-left_join(empl_rate_men, world, c("geo\\time" = "NAME_ENGL")) %>% 
-  sf::st_as_sf() %>% 
-  leaflet(options = leafletOptions(minZoom = 3, maxZoom = 7)) %>% 
+left_join(empl_rate_men, world, c("geo\\time" = "NAME_ENGL")) %>%
+  sf::st_as_sf() %>%
+  leaflet(options = leafletOptions(minZoom = 3, maxZoom = 7)) %>%
   addPolygons(label = ~stri_paste(`geo\\time`, " - ", `2018`, "%"),
               color = ~pal_2018(`2018`),
-              fillOpacity = .6, opacity = 1, weight = .5) %>% 
-  addControl("Title of the map", "topright") %>% 
+              fillOpacity = .6, opacity = 1, weight = .5) %>%
+  addControl("Title of the map", "topright") %>%
   addLegend("bottomright", pal = pal_2018, values = ~`2018`, na.label = "undefined")
 
 # change names of columns
@@ -93,11 +93,11 @@ eurostat %>%
 
 # choose same 5 random countries from both datasets
 set.seed(666)
-random_5_men <- empl_rate_men %>% 
+random_5_men <- empl_rate_men %>%
   sample_n(5)
 
 set.seed(666)
-random_5_women <- empl_rate_women %>% 
+random_5_women <- empl_rate_women %>%
   sample_n(5)
 
 # view chosen tuples
@@ -105,7 +105,7 @@ random_5_men
 random_5_women
 
 # join tuples and keep last 2 years
-(empl <- inner_join(random_5_men, random_5_women, by = "geo\\time") %>% 
+(empl <- inner_join(random_5_men, random_5_women, by = "geo\\time") %>%
   select(Country = `geo\\time`,
          `Men 2017` = `2017.x`,
          `Women 2017` = `2017.y`,
@@ -113,17 +113,17 @@ random_5_women
          `Women 2018` = `2018.y`))
 
 # plot with many layers
-empl %>% plot_ly(x = ~Country) %>% 
-  add_bars(y = ~`Men 2017`, name = "Men 2017", color = I("red")) %>% 
-  add_bars(y = ~`Women 2017`, name = "Women 2017", color = I("orange")) %>% 
-  add_bars(y = ~`Men 2018`, name = "Men 2018", color = I("yellow")) %>% 
-  add_bars(y = ~`Women 2018`, name = "Women 2018", color = I("lightgreen")) %>% 
+empl %>% plot_ly(x = ~Country) %>%
+  add_bars(y = ~`Men 2017`, name = "Men 2017", color = I("red")) %>%
+  add_bars(y = ~`Women 2017`, name = "Women 2017", color = I("orange")) %>%
+  add_bars(y = ~`Men 2018`, name = "Men 2018", color = I("yellow")) %>%
+  add_bars(y = ~`Women 2018`, name = "Women 2018", color = I("lightgreen")) %>%
   layout(title = "Employment rate in EU in years 2017-2018", yaxis = list(title = "Employment rate [%]"))
 
 # plot with one layer
-gather(empl, "Category", "Employment rate [%]", -Country) %>% 
-  mutate(gender = stri_extract_first_regex(Category, "\\w+")) %>% 
-  ggplot(aes(Country, `Employment rate [%]`, fill = Category)) + 
-  geom_col(position = "dodge", width = .3) + facet_grid(~gender) + 
-  theme_minimal() + coord_flip() + ggtitle("Employment rate in EU in years 2017-2018") + 
+gather(empl, "Category", "Employment rate [%]", -Country) %>%
+  mutate(gender = stri_extract_first_regex(Category, "\\w+")) %>%
+  ggplot(aes(Country, `Employment rate [%]`, fill = Category)) +
+  geom_col(position = "dodge", width = .3) + facet_grid(~gender) +
+  theme_minimal() + coord_flip() + ggtitle("Employment rate in EU in years 2017-2018") +
   theme(plot.title = element_text(hjust = .5)) + scale_fill_brewer(palette = "Dark2")
